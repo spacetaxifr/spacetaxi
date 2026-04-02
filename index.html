@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SpaceTaxi">
+<title>SpaceTaxi – Chauffeur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0a1628;--deep:#0d1f3c;--blue:#1a3a6b;--accent:#4a9eff;--sky:#7ec8ff;--white:#f0f6ff;--gray:#8a9ab5;--card:rgba(255,255,255,0.04);--border:rgba(74,158,255,0.15)}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--navy);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+  canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+  /* LOGIN */
+  #loginScreen{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;gap:20px}
+  .login-planet{width:80px;height:80px;background:radial-gradient(circle at 38% 38%,#4a9eff,#1a3a6b 60%,#0a1628);border-radius:50%;box-shadow:0 0 40px rgba(74,158,255,.6);position:relative}
+  .login-planet::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);width:120px;height:24px;border:2px solid rgba(126,200,255,.6);border-radius:50%}
+  .login-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.03em;text-align:center}
+  .login-sub{font-size:.8rem;color:var(--gray);letter-spacing:.08em;text-transform:uppercase;text-align:center}
+  .pin-display{display:flex;gap:14px}
+  .pin-dot{width:14px;height:14px;border-radius:50%;background:var(--card);border:1.5px solid var(--border);transition:all .2s}
+  .pin-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 10px rgba(74,158,255,.5)}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:260px}
+  .pin-btn{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;font-size:1.3rem;font-weight:700;color:var(--white);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif}
+  .pin-btn:active{background:rgba(74,158,255,.2);border-color:var(--accent);transform:scale(.94)}
+  .pin-btn.del{font-size:1rem;color:var(--gray)}
+  .pin-error{color:#ff5c5c;font-size:.82rem;height:18px;text-align:center}
+
+  /* APP */
+  #app{display:none;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+  .top-bar{background:rgba(10,22,40,.85);border-bottom:1px solid var(--border);padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;backdrop-filter:blur(20px)}
+  .top-bar-left{display:flex;align-items:center;gap:10px}
+  .top-bar-logo{width:36px;height:36px;background:radial-gradient(circle at 38% 38%,#4a9eff,#1a3a6b 60%,#0a1628);border-radius:50%;box-shadow:0 0 14px rgba(74,158,255,.4);position:relative;flex-shrink:0}
+  .top-bar-logo::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);width:54px;height:11px;border:1.5px solid rgba(126,200,255,.5);border-radius:50%}
+  .top-bar-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800}
+  .top-bar-sub{font-size:.7rem;color:var(--gray);margin-top:1px}
+  .logout-btn{background:var(--card);border:1px solid var(--border);color:var(--gray);padding:7px 14px;border-radius:100px;font-size:.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+  .logout-btn:hover{border-color:rgba(74,158,255,.4);color:var(--accent)}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:flex;background:rgba(10,22,40,.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);position:sticky;top:64px;z-index:9}
+  .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px;background:none;border:none;color:var(--gray);font-size:.7rem;cursor:pointer;font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;transition:all .2s}
+  .bnav-btn span{font-size:.72rem;font-weight:600}
+  .bnav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .stat-big{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;text-align:center}
+  .stat-big-num{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--accent)}
+  .stat-big-label{font-size:.72rem;color:var(--gray);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+  .stat-big.green .stat-big-num{color:#4ade80}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:16px}
+  .chart-title{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:16px;color:var(--sky);text-transform:uppercase;letter-spacing:.04em}
+  .chart-wrap{display:flex;align-items:flex-end;gap:6px;height:120px}
+  .chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+  .chart-bar-bg{flex:1;width:100%;background:rgba(255,255,255,.05);border-radius:6px;position:relative;overflow:hidden}
+  .chart-bar-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,var(--accent),var(--sky));border-radius:6px;transition:height .6s ease}
+  .chart-bar-label{font-size:.62rem;color:var(--gray);text-align:center}
+  .chart-bar-val{font-size:.65rem;color:var(--accent);font-weight:700;text-align:center}
+  .days-tabs{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:rgba(13,31,60,.4)}
+  .days-tabs::-webkit-scrollbar{display:none}
+  .day-tab{flex-shrink:0;padding:7px 16px;border-radius:100px;background:var(--card);border:1px solid var(--border);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;color:var(--gray)}
+  .day-tab.active{background:var(--accent);border-color:var(--accent);color:var(--navy)}
+
+  /* CONTENT */
+  .content{padding:20px 20px 100px;flex:1}
+  .day-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;text-align:center}
+  .summary-num{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent)}
+  .summary-label{font-size:.68rem;color:var(--gray);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+
+  /* COURSE CARD */
+  .course-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px 18px;margin-bottom:10px;transition:all .25s;animation:fadeUp .3s ease}
+  .course-card:hover{border-color:rgba(74,158,255,.3)}
+  .course-card.done{opacity:.4}
+  .course-header{display:flex;align-items:center;justify-content:space-between}
+  .course-time{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--accent)}
+  .course-right{display:flex;align-items:center;gap:12px}
+  .course-amount{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#4ade80}
+  .course-done-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .2s;color:var(--gray)}
+  .course-card.done .course-done-btn{background:#4ade80;border-color:#4ade80;color:var(--navy)}
+  .course-del{background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.15);color:#ff5c5c;padding:5px 12px;border-radius:8px;font-size:.72rem;cursor:pointer;margin-top:10px;font-family:'DM Sans',sans-serif}
+
+  /* ADD FORM */
+  .add-card{background:rgba(74,158,255,.05);border:1px solid rgba(74,158,255,.2);border-radius:20px;padding:20px;margin-bottom:12px;animation:fadeUp .3s ease}
+  .add-card h4{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:14px;color:var(--sky);text-transform:uppercase;letter-spacing:.06em}
+  .add-input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:13px 16px;color:var(--white);font-size:1rem;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:10px;transition:all .2s}
+  .add-input:focus{border-color:var(--accent);background:rgba(74,158,255,.08)}
+  .add-input::placeholder{color:var(--gray)}
+  .add-btn{background:var(--accent);border:none;color:var(--navy);padding:14px;border-radius:14px;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;font-family:'Syne',sans-serif;transition:all .2s;box-shadow:0 8px 24px rgba(74,158,255,.3)}
+  .add-btn:hover{background:var(--sky);transform:translateY(-1px)}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:60px 20px;color:var(--gray)}
+  .empty-icon{font-size:2.5rem;margin-bottom:14px;opacity:.4}
+  .empty-sub{font-size:.78rem;margin-top:6px;opacity:.5}
+
+  /* FAB */
+  .fab{position:fixed;bottom:28px;right:24px;width:58px;height:58px;background:var(--accent);border-radius:50%;border:none;color:var(--navy);font-size:1.6rem;cursor:pointer;box-shadow:0 8px 28px rgba(74,158,255,.5);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:50;font-weight:700}
+  .fab:hover{background:var(--sky);transform:translateY(-2px)}
+  .fab:active{transform:scale(.92)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-planet"></div>
+  <div><div class="login-title">SpaceTaxi</div><div class="login-sub">Espace chauffeur</div></div>
+  <div class="pin-display">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pinError">&nbsp;</div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="addPin('1')">1</button>
+    <button class="pin-btn" onclick="addPin('2')">2</button>
+    <button class="pin-btn" onclick="addPin('3')">3</button>
+    <button class="pin-btn" onclick="addPin('4')">4</button>
+    <button class="pin-btn" onclick="addPin('5')">5</button>
+    <button class="pin-btn" onclick="addPin('6')">6</button>
+    <button class="pin-btn" onclick="addPin('7')">7</button>
+    <button class="pin-btn" onclick="addPin('8')">8</button>
+    <button class="pin-btn" onclick="addPin('9')">9</button>
+    <div></div>
+    <button class="pin-btn" onclick="addPin('0')">0</button>
+    <button class="pin-btn del" onclick="delPin()">⌫</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="top-bar-logo"></div>
+      <div><div class="top-bar-title">SpaceTaxi</div><div class="top-bar-sub" id="todayLabel"></div></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Quitter</button>
+  </div>
+  <div class="days-tabs" id="daysTabs"></div>
+
+  <!-- NAV BOTTOM -->
+  <div class="bottom-nav">
+    <button class="bnav-btn active" id="btn_courses" onclick="showView('courses')">📋<span>Courses</span></button>
+    <button class="bnav-btn" id="btn_stats" onclick="showView('stats')">📊<span>Stats</span></button>
+  </div>
+
+  <div class="content" id="content"></div>
+  <div class="content" id="statsContent" style="display:none"></div>
+  <button class="fab" onclick="toggleAdd()" id="fab">+</button>
+</div>
+
+<script>
+// Stars
+(function(){
+  var c=document.getElementById('c'),ctx=c.getContext('2d'),s=[];
+  function r(){c.width=window.innerWidth;c.height=window.innerHeight;}r();
+  window.addEventListener('resize',r);
+  for(var i=0;i<160;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,t:Math.random()*Math.PI*2,sp:Math.random()*.006+.002});
+  function draw(){ctx.clearRect(0,0,c.width,c.height);s.forEach(function(st){st.t+=st.sp;var o=.2+.7*(.5+.5*Math.sin(st.t));ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+o+')';ctx.fill();});requestAnimationFrame(draw);}
+  draw();
+})();
+
+var currentView = 'courses';
+
+function showView(v){
+  currentView = v;
+  document.getElementById('content').style.display = v==='courses'?'block':'none';
+  document.getElementById('statsContent').style.display = v==='stats'?'block':'none';
+  document.getElementById('daysTabs').style.display = v==='courses'?'flex':'none';
+  document.getElementById('fab').style.display = v==='courses'?'flex':'none';
+  document.getElementById('btn_courses').classList.toggle('active', v==='courses');
+  document.getElementById('btn_stats').classList.toggle('active', v==='stats');
+  if(v==='stats') renderStats();
+}
+
+function renderStats(){
+  var data = get();
+  var now = new Date();
+
+  // Semaine courante (lundi → dimanche)
+  var weekStart = new Date(now);
+  var dow = weekStart.getDay(); if(dow===0)dow=7;
+  weekStart.setDate(weekStart.getDate() - (dow-1));
+  var weekTotal = 0, weekCourses = 0;
+
+  // Mois courant
+  var monthTotal = 0, monthCourses = 0;
+  var thisMonth = now.toISOString().slice(0,7);
+
+  // 7 derniers jours pour le graphique
+  var chartDays = [];
+  for(var i=6;i>=0;i--){
+    var d = new Date(); d.setDate(d.getDate()-i);
+    var k = dk(d);
+    var tot = 0;
+    if(data[k]) data[k].forEach(function(c){tot+=parseFloat(c.m)||0;});
+    chartDays.push({label: fmtShort(k), val: tot, key: k});
+  }
+
+  // Calculs semaine & mois
+  Object.keys(data).forEach(function(k){
+    var d = new Date(k+'T12:00:00');
+    var kDate = new Date(k+'T12:00:00');
+    if(kDate >= weekStart && kDate <= now){
+      data[k].forEach(function(c){weekTotal+=parseFloat(c.m)||0; weekCourses++;});
+    }
+    if(k.slice(0,7) === thisMonth){
+      data[k].forEach(function(c){monthTotal+=parseFloat(c.m)||0; monthCourses++;});
+    }
+  });
+
+  var maxVal = Math.max.apply(null, chartDays.map(function(d){return d.val;})) || 1;
+
+  var h = '';
+  h += '<div class="stats-grid">';
+  h += '<div class="stat-big"><div class="stat-big-num">'+weekTotal.toFixed(0)+' CHF</div><div class="stat-big-label">Cette semaine</div></div>';
+  h += '<div class="stat-big"><div class="stat-big-num">'+weekCourses+'</div><div class="stat-big-label">Courses semaine</div></div>';
+  h += '<div class="stat-big green"><div class="stat-big-num">'+monthTotal.toFixed(0)+' CHF</div><div class="stat-big-label">Ce mois</div></div>';
+  h += '<div class="stat-big green"><div class="stat-big-num">'+monthCourses+'</div><div class="stat-big-label">Courses mois</div></div>';
+  h += '</div>';
+
+  h += '<div class="chart-card"><div class="chart-title">Revenus — 7 derniers jours</div>';
+  h += '<div class="chart-wrap">';
+  chartDays.forEach(function(d){
+    var pct = maxVal > 0 ? (d.val/maxVal*100) : 0;
+    h += '<div class="chart-bar-wrap">';
+    h += '<div class="chart-bar-val">'+(d.val>0?d.val.toFixed(0):'')+'</div>';
+    h += '<div class="chart-bar-bg"><div class="chart-bar-fill" style="height:'+pct+'%"></div></div>';
+    h += '<div class="chart-bar-label">'+d.label+'</div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  document.getElementById('statsContent').innerHTML = h;
+}
+
+var PIN='7278',ent='',day='',addOpen=false;
+
+function addPin(n){
+  if(ent.length>=4)return;ent+=n;dots();
+  if(ent.length===4){
+    if(ent===PIN){document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';init();}
+    else{document.getElementById('pinError').textContent='Code incorrect';setTimeout(function(){ent='';dots();document.getElementById('pinError').innerHTML='&nbsp;';},900);}
+  }
+}
+function delPin(){ent=ent.slice(0,-1);dots();}
+function dots(){for(var i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<ent.length);}
+function logout(){ent='';dots();document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';}
+
+function get(){try{return JSON.parse(localStorage.getItem('st2')||'{}');}catch(e){return{};}}
+function save(d){localStorage.setItem('st2',JSON.stringify(d));}
+
+function dk(d){return d.toISOString().slice(0,10);}
+function fmtLong(d){var j=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],m=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];return j[d.getDay()]+' '+d.getDate()+' '+m[d.getMonth()];}
+function fmtShort(k){var d=new Date(k+'T12:00:00'),j=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];return j[d.getDay()]+' '+d.getDate();}
+
+function init(){var now=new Date();document.getElementById('todayLabel').textContent=fmtLong(now);day=dk(now);tabs();render();}
+
+function tabs(){
+  var data=get(),today=dk(new Date()),keys=[];
+  for(var i=0;i<30;i++){var d=new Date();d.setDate(d.getDate()+i);keys.push(dk(d));}
+  Object.keys(data).forEach(function(k){if(keys.indexOf(k)===-1)keys.unshift(k);});
+  keys.sort();
+  var h='';
+  keys.forEach(function(k){
+    var l=k===today?"Aujourd'hui":fmtShort(k);
+    var n=data[k]?data[k].length:0;
+    h+='<div class="day-tab'+(k===day?' active':'')+'" onclick="selDay(\''+k+'\')">'+l+(n?' ('+n+')':'')+'</div>';
+  });
+  document.getElementById('daysTabs').innerHTML=h;
+}
+
+function selDay(k){day=k;addOpen=false;document.getElementById('fab').textContent='+';tabs();render();}
+
+function render(){
+  var data=get(),courses=data[day]||[];
+  courses.sort(function(a,b){return a.h.localeCompare(b.h);});
+  var tot=0,done=0;
+  courses.forEach(function(c){tot+=parseFloat(c.m)||0;if(c.d)done++;});
+  var h='<div class="day-summary">';
+  h+='<div class="summary-card"><div class="summary-num">'+courses.length+'</div><div class="summary-label">Courses</div></div>';
+  h+='<div class="summary-card"><div class="summary-num">'+tot.toFixed(0)+' CHF</div><div class="summary-label">Total</div></div>';
+  h+='<div class="summary-card"><div class="summary-num">'+done+'</div><div class="summary-label">Terminées</div></div>';
+  h+='</div>';
+  if(addOpen){
+    h+='<div class="add-card"><h4>✦ Nouvelle course</h4>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
+    h+='<select class="add-input" id="ih_h" style="flex:1">';
+    for(var hh=0;hh<24;hh++){var hv=(hh<10?'0':'')+hh;h+='<option value="'+hv+'">'+hv+'h</option>';}
+    h+='</select>';
+    h+='<select class="add-input" id="ih_m" style="flex:1">';
+    h+='<option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>';
+    h+='</select></div>';
+    h+='<input class="add-input" id="im" type="number" placeholder="Montant CHF" inputmode="decimal">';
+    h+='<button class="add-btn" onclick="addC()">Ajouter</button></div>';
+  }
+  if(!courses.length&&!addOpen){
+    h+='<div class="empty"><div class="empty-icon">🚀</div><div>Aucune course ce jour</div><div class="empty-sub">Appuyez sur + pour ajouter</div></div>';
+  }
+  courses.forEach(function(c,i){
+    h+='<div class="course-card'+(c.d?' done':'')+'">';
+    h+='<div class="course-header"><div class="course-time">'+c.h+'</div>';
+    h+='<div class="course-right"><div class="course-amount">'+parseFloat(c.m).toFixed(0)+' CHF</div>';
+    h+='<button class="course-done-btn" onclick="tDone('+i+')">'+(c.d?'✓':'')+'</button></div></div>';
+    h+='<button class="course-del" onclick="del('+i+')">Supprimer</button></div>';
+  });
+  document.getElementById('content').innerHTML=h;
+  if(addOpen)setTimeout(function(){var el=document.getElementById('im');if(el)el.focus();},100);
+}
+
+function toggleAdd(){addOpen=!addOpen;document.getElementById('fab').textContent=addOpen?'✕':'+';render();}
+
+function addC(){
+  var hh=document.getElementById('ih_h').value;
+  var mm=document.getElementById('ih_m').value;
+  var h=hh+':'+mm;
+  var m=document.getElementById('im').value;
+  if(!m){alert('Montant requis');return;}
+  var data=get();if(!data[day])data[day]=[];
+  data[day].push({h:h,m:m,d:false});save(data);
+  addOpen=false;document.getElementById('fab').textContent='+';
+  tabs();render();
+}
+
+function tDone(i){var data=get();if(!data[day])return;data[day][i].d=!data[day][i].d;save(data);render();}
+
+function del(i){
+  if(!confirm('Supprimer ?'))return;
+  var data=get();data[day].splice(i,1);save(data);tabs();render();
+}
+</script>
+</body>
+</html>
