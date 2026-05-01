@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpaceTaxi">
+<title>SpaceTaxi – Chauffeur</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+  :root{--bg:#ffffff;--card:#eef2ff;--border:rgba(26,59,189,.18);--text:#1a3bbd;--sub:rgba(26,59,189,.5);--accent:#1a3bbd;--green:#16a34a;--red:#ef4444;--blue:#1a3bbd}
+  html,body{background:var(--bg);color:var(--text);font-family:'Orbitron',sans-serif;min-height:100vh;overflow-x:hidden}
+
+  /* LOGIN */
+  #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;gap:24px}
+  .login-logo{font-size:2.5rem;margin-bottom:4px}
+  .login-title{font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+  .login-sub{font-size:1rem;color:var(--sub);letter-spacing:.04em}
+  .pin-display{display:flex;gap:16px;margin:8px 0}
+  .pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);border:1.5px solid rgba(26,59,189,.3);transition:all .15s}
+  .pin-dot.filled{background:#1a3bbd;border-color:#1a3bbd}
+  .pin-error{color:var(--red);font-size:1rem;height:20px;text-align:center}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:300px}
+  .pin-btn{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;font-size:1.6rem;font-weight:700;color:#1a3bbd;cursor:pointer;text-align:center;transition:all .1s;font-family:'Orbitron',sans-serif}
+  .pin-btn:active{background:rgba(26,59,189,.15);transform:scale(.95)}
+  .pin-btn.del{font-size:1.1rem;color:var(--sub)}
+
+  /* WELCOME */
+  #welcomeMsg{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:var(--bg);flex-direction:column;gap:12px}
+  .welcome-emoji{font-size:2.5rem}
+  .welcome-text{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;text-align:center;line-height:1.2}
+  .welcome-sub{font-size:1.05rem;color:var(--sub)}
+
+  /* APP */
+  #app{display:none;flex-direction:column;min-height:100vh}
+
+  /* TOP BAR */
+  .top-bar{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border)}
+  .top-bar-left{display:flex;flex-direction:column}
+  .top-bar-title{font-size:1.3rem;font-weight:800;letter-spacing:.02em}
+  .top-bar-sub{font-size:.88rem;color:var(--sub);margin-top:2px}
+  .logout-btn{background:transparent;border:1px solid var(--border);color:var(--sub);padding:8px 16px;border-radius:100px;font-size:.88rem;cursor:pointer;font-family:'Orbitron',sans-serif}
+
+  /* TABS */
+  .days-tabs{display:flex;gap:8px;padding:12px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+  .days-tabs::-webkit-scrollbar{display:none}
+  .day-tab{flex-shrink:0;padding:9px 18px;border-radius:100px;background:transparent;border:1px solid var(--border);font-size:.92rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--sub);touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-family:'Orbitron',sans-serif}
+  .day-tab.active{background:#1a3bbd;border-color:#1a3bbd;color:#fff}
+  .day-tab.has-data{border-color:rgba(26,59,189,.4);color:rgba(26,59,189,.7)}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:flex;background:var(--bg);border-top:1px solid var(--border);position:sticky;top:64px;z-index:9}
+  .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:none;border:none;color:var(--sub);font-size:.82rem;cursor:pointer;font-family:'Orbitron',sans-serif;border-bottom:2px solid transparent;transition:all .2s;font-weight:600}
+  .bnav-btn.active{color:#1a3bbd;border-bottom-color:#1a3bbd}
+
+  /* CONTENT */
+  .content{padding:20px 20px 120px;flex:1}
+
+  /* SUMMARY */
+  .day-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px 14px;text-align:center}
+  .summary-num{font-size:2.2rem;font-weight:800;color:#1a3bbd;letter-spacing:.02em}
+  .summary-label{font-size:.78rem;color:var(--sub);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+  /* COURSE CARD */
+  .course-card{background:var(--card);border:1px solid var(--border);border-radius:18px;margin-bottom:10px;position:relative;overflow:hidden;touch-action:pan-y;user-select:none;transform:translateZ(0);-webkit-backface-visibility:hidden}
+  .swipe-bg{position:absolute;inset:0;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:flex-end;padding-right:20px;border-radius:18px;pointer-events:none;opacity:0}
+  .swipe-bg span{color:var(--red);font-size:1rem;font-weight:700}
+  .course-inner{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;transition:transform .1s linear;will-change:transform}
+  .course-amount{font-size:2rem;font-weight:800;color:#1a3bbd;letter-spacing:.02em}
+  .course-num{font-size:.82rem;color:var(--sub);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+
+  /* ADD FORM */
+  .add-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:12px}
+  .add-card h4{font-size:.9rem;font-weight:700;margin-bottom:14px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+  .add-input{width:100%;background:rgba(26,59,189,.05);border:1px solid var(--border);border-radius:14px;padding:16px 18px;color:#1a3bbd;font-size:1.3rem;outline:none;font-family:'Orbitron',sans-serif;margin-bottom:10px;font-weight:700;letter-spacing:.02em;transition:border-color .15s}
+  .add-input:focus{border-color:rgba(26,59,189,.5)}
+  .add-input::placeholder{color:rgba(26,59,189,.25);font-weight:500;font-size:1.1rem}
+  .add-btn{background:#1a3bbd;border:none;color:#fff;padding:16px;border-radius:14px;font-size:1.1rem;font-weight:800;cursor:pointer;width:100%;font-family:'Orbitron',sans-serif;letter-spacing:.04em}
+  .add-btn:active{opacity:.85}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:60px 20px}
+  .empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.3}
+  .empty-text{font-size:1.05rem;color:var(--sub);font-weight:500}
+  .empty-sub{font-size:.88rem;margin-top:6px;color:rgba(26,59,189,.25)}
+
+  /* FAB */
+  .fab{position:fixed;bottom:28px;right:20px;width:60px;height:60px;background:#1a3bbd;border-radius:50%;border:none;color:#fff;font-size:1.7rem;cursor:pointer;box-shadow:0 4px 20px rgba(26,59,189,.4);display:flex;align-items:center;justify-content:center;z-index:50;font-weight:700;transition:transform .1s}
+  .fab:active{transform:scale(.92)}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .stat-big{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 16px;text-align:center}
+  .stat-big-num{font-size:2.2rem;font-weight:800;color:#1a3bbd;letter-spacing:.02em}
+  .stat-big-label{font-size:.78rem;color:var(--sub);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+  .chart-title{font-size:.85rem;font-weight:700;margin-bottom:16px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+  .chart-wrap{display:flex;align-items:flex-end;gap:6px;height:100px}
+  .chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+  .chart-bar-bg{flex:1;width:100%;background:rgba(26,59,189,.08);border-radius:4px;position:relative;overflow:hidden}
+  .chart-bar-fill{position:absolute;bottom:0;left:0;right:0;background:#1a3bbd;border-radius:4px;transition:height .5s ease}
+  .chart-bar-label{font-size:.68rem;color:var(--sub);text-align:center}
+  .chart-bar-val{font-size:.72rem;color:#1a3bbd;font-weight:700;text-align:center;min-height:12px}
+  .export-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--green);border:none;color:#fff;padding:16px;border-radius:14px;font-size:1.05rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:14px;font-family:'Orbitron',sans-serif}
+  .export-btn:active{opacity:.85}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* MONTH VIEW */
+  .month-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+  .month-nav-btn{background:var(--card);border:1px solid var(--border);color:#1a3bbd;width:40px;height:40px;border-radius:50%;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif}
+  .month-nav-btn:active{opacity:.7}
+  .month-nav-label{font-size:1.1rem;font-weight:800;letter-spacing:.02em;color:#1a3bbd}
+  .month-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .month-stat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px 14px;text-align:center}
+  .month-stat-num{font-size:2rem;font-weight:800;color:#1a3bbd;letter-spacing:.02em}
+  .month-stat-num.green{color:var(--green)}
+  .month-stat-label{font-size:.78rem;color:var(--sub);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .pdf-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(26,59,189,.08);border:1px solid var(--border);color:#1a3bbd;padding:14px;border-radius:14px;font-size:.9rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px;font-family:'Orbitron',sans-serif}
+  .pdf-btn:active{opacity:.75}
+  .pdf-btn.annual{background:rgba(26,59,189,.15);border-color:rgba(26,59,189,.35);color:#1a3bbd}
+  .month-empty{text-align:center;padding:60px 20px;color:var(--sub)}
+
+  /* PRINT — styles pour la fenêtre PDF (nouvelle fenêtre) */
+  /* Pas besoin de @media print ici — tout se passe dans printDoc() */
+  #printArea{display:none}
+
+  /* PRINT — document styles */
+  @media print{
+    .pr-page{width:100%;max-width:720px;margin:0 auto;font-family:'Plus Jakarta Sans',Georgia,serif;font-size:10pt;color:#000}
+    /* header */
+    .pr-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:14px;margin-bottom:22px}
+    .pr-brand{font-size:18pt;font-weight:800;letter-spacing:-.04em;line-height:1}
+    .pr-brand-sub{font-size:8pt;color:#555;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+    .pr-doc-meta{text-align:right}
+    .pr-doc-type{font-size:13pt;font-weight:800;letter-spacing:-.02em}
+    .pr-doc-period{font-size:8.5pt;color:#555;margin-top:3px}
+    /* kpis */
+    .pr-kpis{display:grid;gap:0;border:1.5px solid #000;border-radius:0;margin-bottom:22px}
+    .pr-kpis-row{display:grid;border-bottom:1px solid #ccc}
+    .pr-kpis-row:last-child{border-bottom:none}
+    .pr-kpi{padding:12px 16px;border-right:1px solid #ccc;text-align:center}
+    .pr-kpi:last-child{border-right:none}
+    .pr-kpi-val{font-size:16pt;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+    .pr-kpi-label{font-size:7pt;color:#555;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-top:3px}
+    /* section title */
+    .pr-section{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#555;border-bottom:1px solid #ddd;padding-bottom:5px;margin-bottom:12px;margin-top:20px}
+    /* chart */
+    .pr-chart{display:flex;align-items:flex-end;gap:2px;height:110px;margin-bottom:6px}
+    .pr-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%}
+    .pr-bar-bg{flex:1;width:100%;background:#f0f0f0;border-radius:2px;position:relative}
+    .pr-bar-fill{position:absolute;bottom:0;left:0;right:0;border-radius:2px}
+    .pr-bar-label{font-size:6pt;color:#888;text-align:center;line-height:1.2}
+    .pr-bar-val{font-size:6.5pt;font-weight:700;text-align:center;line-height:1.2;min-height:9pt}
+    /* table */
+    .pr-table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-top:4px}
+    .pr-table th{background:#000;color:#fff;padding:7px 10px;text-align:left;font-size:7.5pt;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    .pr-table th:last-child,.pr-table td:last-child{text-align:right}
+    .pr-table td{padding:6px 10px;border-bottom:1px solid #eee;vertical-align:middle}
+    .pr-table tr:last-child td{border-bottom:none}
+    .pr-table tr.subtotal td{background:#f7f7f7;font-weight:700;border-top:1.5px solid #bbb}
+    .pr-table .zero{color:#ccc}
+    /* footer */
+    .pr-footer{margin-top:28px;padding-top:10px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7pt;color:#aaa}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-logo"></div>
+  <div style="text-align:center">
+    <div class="login-title">SpaceTaxi</div>
+    <div class="login-sub">Espace chauffeur</div>
+  </div>
+  <div class="pin-display">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pinError">&nbsp;</div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="addPin('1')">1</button>
+    <button class="pin-btn" onclick="addPin('2')">2</button>
+    <button class="pin-btn" onclick="addPin('3')">3</button>
+    <button class="pin-btn" onclick="addPin('4')">4</button>
+    <button class="pin-btn" onclick="addPin('5')">5</button>
+    <button class="pin-btn" onclick="addPin('6')">6</button>
+    <button class="pin-btn" onclick="addPin('7')">7</button>
+    <button class="pin-btn" onclick="addPin('8')">8</button>
+    <button class="pin-btn" onclick="addPin('9')">9</button>
+    <div></div>
+    <button class="pin-btn" onclick="addPin('0')">0</button>
+    <button class="pin-btn del" onclick="delPin()">⌫</button>
+  </div>
+</div>
+
+<!-- WELCOME -->
+<div id="welcomeMsg" style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:var(--bg);flex-direction:column;gap:12px">
+  <div style="font-size:2.5rem"></div>
+  <div style="font-size:2rem;font-weight:800;letter-spacing:-.04em;text-align:center;line-height:1.2">Bienvenue<br>Vimal !</div>
+  <div style="font-size:.9rem;color:var(--sub)">Bonne journée</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="top-bar-title">SpaceTaxi</div>
+      <div class="top-bar-sub" id="todayLabel"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Quitter</button>
+  </div>
+  <div class="days-tabs" id="daysTabs"></div>
+  <div class="bottom-nav">
+    <button class="bnav-btn active" id="btn_courses" onclick="showView('courses')"><span>Courses</span></button>
+    <button class="bnav-btn" id="btn_stats" onclick="showView('stats')"><span>Stats</span></button>
+    <button class="bnav-btn" id="btn_month" onclick="showView('month')"><span>Mensuel</span></button>
+  </div>
+  <div class="content" id="content"></div>
+  <div class="content" id="statsContent" style="display:none"></div>
+  <div id="monthView" style="display:none;flex-direction:column;flex:1">
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="month-nav-label" id="monthLabel"></div>
+      <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="content" id="monthContent"></div>
+  </div>
+  <div id="printArea"></div>
+  <button class="fab" onclick="toggleAdd()" id="fab">+</button>
+</div>
+
+<script>
+var PIN='7278',ent='',day='',addOpen=false,currentView='courses';
+
+function addPin(n){
+  if(ent.length>=4)return;ent+=n;dots();
+  if(ent.length===4){
+    if(ent===PIN){
+      document.getElementById('loginScreen').style.display='none';
+      var w=document.getElementById('welcomeMsg');
+      w.style.display='flex';
+      setTimeout(function(){w.style.display='none';document.getElementById('app').style.display='flex';init();},1200);
+    } else {
+      document.getElementById('pinError').textContent='Code incorrect';
+      setTimeout(function(){ent='';dots();document.getElementById('pinError').innerHTML='&nbsp;';},800);
+    }
+  }
+}
+function delPin(){ent=ent.slice(0,-1);dots();}
+function dots(){for(var i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<ent.length);}
+function logout(){ent='';dots();document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';}
+
+function get(){try{return JSON.parse(localStorage.getItem('st2')||'{}');}catch(e){return{};}}
+function save(d){localStorage.setItem('st2',JSON.stringify(d));}
+function dk(d){return d.toISOString().slice(0,10);}
+function fmtLong(d){var j=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],m=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];return j[d.getDay()]+' '+d.getDate()+' '+m[d.getMonth()];}
+function fmtShort(k){var d=new Date(k+'T12:00:00'),j=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];return j[d.getDay()]+' '+d.getDate();}
+
+function init(){var now=new Date();document.getElementById('todayLabel').textContent=fmtLong(now);day=dk(now);tabs();render();}
+
+function showView(v){
+  currentView=v;
+  document.getElementById('content').style.display=v==='courses'?'block':'none';
+  document.getElementById('statsContent').style.display=v==='stats'?'block':'none';
+  document.getElementById('monthView').style.display=v==='month'?'flex':'none';
+  document.getElementById('daysTabs').style.display=v==='courses'?'flex':'none';
+  document.getElementById('fab').style.display=v==='courses'?'flex':'none';
+  document.getElementById('btn_courses').classList.toggle('active',v==='courses');
+  document.getElementById('btn_stats').classList.toggle('active',v==='stats');
+  document.getElementById('btn_month').classList.toggle('active',v==='month');
+  if(v==='stats')renderStats();
+  if(v==='month')renderMonth();
+}
+
+var currentMonthOffset=0;
+var MONTH_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var MONTH_SHORT=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+
+function getMonthKey(offset){
+  var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function changeMonth(dir){currentMonthOffset+=dir;renderMonth();}
+
+function getMonthData(year,mon){
+  // mon = 0-indexed
+  var data=get(),total=0,count=0;
+  var daysInMonth=new Date(year,mon+1,0).getDate();
+  var daily=[];
+  for(var d=1;d<=daysInMonth;d++){
+    var k=year+'-'+String(mon+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var dt=0,dc=0;
+    if(data[k])data[k].forEach(function(c){dt+=parseFloat(c.m)||0;dc++;});
+    total+=dt;count+=dc;
+    daily.push({day:d,key:k,val:dt,count:dc});
+  }
+  return{total:total,count:count,daily:daily,avg:count>0?total/count:0};
+}
+
+function renderMonth(){
+  var mk=getMonthKey(currentMonthOffset);
+  var year=parseInt(mk.slice(0,4)),mon=parseInt(mk.slice(5,7))-1;
+  document.getElementById('monthLabel').textContent=MONTH_FR[mon]+' '+year;
+  var md=getMonthData(year,mon);
+  var bestDay=md.daily.reduce(function(a,b){return b.val>a.val?b:a;},md.daily[0]);
+  var h='';
+  h+='<div class="month-stats-grid">';
+  h+='<div class="month-stat"><div class="month-stat-num">'+md.total.toFixed(0)+'<span style="font-size:1rem;opacity:.4"> CHF</span></div><div class="month-stat-label">Total mois</div></div>';
+  h+='<div class="month-stat"><div class="month-stat-num">'+md.count+'</div><div class="month-stat-label">Courses</div></div>';
+  h+='<div class="month-stat"><div class="month-stat-num green">'+md.avg.toFixed(0)+'<span style="font-size:1rem;opacity:.5"> CHF</span></div><div class="month-stat-label">Moy./course</div></div>';
+  h+='<div class="month-stat"><div class="month-stat-num green">'+(bestDay.val>0?bestDay.val.toFixed(0)+' <span style="font-size:1rem;opacity:.5">CHF</span>':'-')+'</div><div class="month-stat-label">Meilleur jour</div></div>';
+  h+='</div>';
+  h+='<button class="pdf-btn" onclick="exportMonthPDF()">🖨 Rapport mensuel PDF</button>';
+  h+='<button class="pdf-btn annual" onclick="exportAnnualPDF()">📊 Rapport annuel '+year+' PDF</button>';
+  if(md.count===0){
+    h+='<div class="month-empty"><div style="font-size:2rem;opacity:.2;margin-bottom:12px">📅</div><div>Aucune course ce mois</div></div>';
+  } else {
+    var maxV=Math.max.apply(null,md.daily.map(function(d){return d.val;}))||1;
+    h+='<div class="chart-card"><div class="chart-title">Revenus par jour</div><div class="chart-wrap">';
+    md.daily.forEach(function(d){
+      var pct=d.val/maxV*100;
+      var show=md.daily.length<=15||d.day%3===1||d.day===md.daily.length;
+      h+='<div class="chart-bar-wrap"><div class="chart-bar-val">'+(d.val>0?d.val.toFixed(0):'')+'</div>';
+      h+='<div class="chart-bar-bg"><div class="chart-bar-fill" style="height:'+pct+'%;opacity:'+(d.val>0?'1':'.15')+'"></div></div>';
+      h+='<div class="chart-bar-label">'+(show?d.day:'')+'</div></div>';
+    });
+    h+='</div></div>';
+  }
+  document.getElementById('monthContent').innerHTML=h;
+}
+
+/* ---- PDF core: open new window ---- */
+function printDoc(title, bodyHTML){
+  var w=window.open('','_blank','width=900,height=700');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>'+title+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">'+
+    '<style>'+
+      '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+      'body{background:#fff;color:#000;font-family:"Plus Jakarta Sans",sans-serif;font-size:10pt;padding:28px 36px}'+
+      '@page{margin:12mm 10mm}'+
+      '.pr-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #000;padding-bottom:14px;margin-bottom:22px}'+
+      '.pr-brand{font-size:22pt;font-weight:800;letter-spacing:-.04em;line-height:1;color:#000}'+
+      '.pr-brand-sub{font-size:7.5pt;color:#666;margin-top:4px;letter-spacing:.08em;text-transform:uppercase}'+
+      '.pr-doc-meta{text-align:right}'+
+      '.pr-doc-type{font-size:14pt;font-weight:800;letter-spacing:-.02em;color:#000}'+
+      '.pr-doc-period{font-size:9pt;color:#666;margin-top:3px}'+
+      '.pr-kpis{border:1.5px solid #000;margin-bottom:24px}'+
+      '.pr-kpis-row{display:grid;border-bottom:1px solid #ccc}'+
+      '.pr-kpis-row:last-child{border-bottom:none}'+
+      '.pr-kpi{padding:13px 16px;border-right:1px solid #ccc;text-align:center}'+
+      '.pr-kpi:last-child{border-right:none}'+
+      '.pr-kpi-val{font-size:17pt;font-weight:800;letter-spacing:-.03em;line-height:1.1;color:#000}'+
+      '.pr-kpi-label{font-size:7pt;color:#666;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:4px}'+
+      '.pr-section{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;border-bottom:1px solid #ddd;padding-bottom:5px;margin-bottom:12px;margin-top:20px}'+
+      '.pr-chart{display:flex;align-items:flex-end;gap:3px;height:120px;margin-bottom:8px}'+
+      '.pr-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%}'+
+      '.pr-bar-bg{flex:1;width:100%;background:#efefef;border-radius:2px;position:relative}'+
+      '.pr-bar-fill{position:absolute;bottom:0;left:0;right:0;border-radius:2px;background:#000}'+
+      '.pr-bar-fill.empty{background:#e0e0e0}'+
+      '.pr-bar-label{font-size:6pt;color:#999;text-align:center;line-height:1.3}'+
+      '.pr-bar-val{font-size:6pt;font-weight:700;text-align:center;line-height:1.3;min-height:9pt;color:#000}'+
+      'table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-top:4px}'+
+      'thead tr{background:#000}'+
+      'th{padding:7px 10px;text-align:left;font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#fff}'+
+      'th:last-child,td:last-child{text-align:right}'+
+      'td{padding:6px 10px;border-bottom:1px solid #eee;color:#000}'+
+      'tr:last-child td{border-bottom:none}'+
+      'tr.subtotal td{background:#f5f5f5;font-weight:800;border-top:2px solid #aaa;font-size:9pt}'+
+      '.zero{color:#ccc}'+
+      '.pr-footer{margin-top:24px;padding-top:10px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7pt;color:#aaa}'+
+    '</style></head><body>'+bodyHTML+'</body></html>');
+  w.document.close();
+  setTimeout(function(){w.print();},600);
+}
+
+/* ---- MONTHLY PDF ---- */
+function exportMonthPDF(){
+  var mk=getMonthKey(currentMonthOffset);
+  var year=parseInt(mk.slice(0,4)),mon=parseInt(mk.slice(5,7))-1;
+  var md=getMonthData(year,mon);
+  var bestDay=md.daily.reduce(function(a,b){return b.val>a.val?b:a;},md.daily[0]);
+  var maxV=Math.max.apply(null,md.daily.map(function(d){return d.val;}))||1;
+
+  var chartHTML='<div class="pr-chart">';
+  md.daily.forEach(function(d){
+    var pct=maxV>0?(d.val/maxV*100):0;
+    var show=md.daily.length<=15||d.day%3===1||d.day===md.daily.length;
+    chartHTML+='<div class="pr-bar-wrap">'+
+      '<div class="pr-bar-val">'+(d.val>0?d.val.toFixed(0):'')+'</div>'+
+      '<div class="pr-bar-bg"><div class="pr-bar-fill'+(d.val===0?' empty':'')+'" style="height:'+pct+'%"></div></div>'+
+      '<div class="pr-bar-label">'+(show?d.day:'')+'</div>'+
+      '</div>';
+  });
+  chartHTML+='</div>';
+
+  var JOURS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  var tableHTML='<table><thead><tr><th>Date</th><th>Jour</th><th>Courses</th><th>Total CHF</th></tr></thead><tbody>';
+  var gt=0;
+  md.daily.forEach(function(d){
+    if(d.count===0){
+      tableHTML+='<tr><td>'+String(d.day).padStart(2,'0')+'/'+String(mon+1).padStart(2,'0')+'</td><td>'+JOURS[new Date(year,mon,d.day).getDay()]+'</td><td class="zero">—</td><td class="zero">—</td></tr>';
+    } else {
+      gt+=d.val;
+      tableHTML+='<tr><td><b>'+String(d.day).padStart(2,'0')+'/'+String(mon+1).padStart(2,'0')+'</b></td><td>'+JOURS[new Date(year,mon,d.day).getDay()]+'</td><td>'+d.count+'</td><td>'+d.val.toFixed(2)+' CHF</td></tr>';
+    }
+  });
+  tableHTML+='<tr class="subtotal"><td colspan="2">TOTAL</td><td>'+md.count+'</td><td>'+gt.toFixed(2)+' CHF</td></tr></tbody></table>';
+
+  var now=new Date();
+  var kpisHTML='<div class="pr-kpis"><div class="pr-kpis-row" style="grid-template-columns:repeat(4,1fr)">'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+md.total.toFixed(0)+' CHF</div><div class="pr-kpi-label">Total du mois</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+md.count+'</div><div class="pr-kpi-label">Courses</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+md.avg.toFixed(0)+' CHF</div><div class="pr-kpi-label">Moy. / course</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+(bestDay.val>0?bestDay.val.toFixed(0)+' CHF':'-')+'</div><div class="pr-kpi-label">Meilleur jour ('+( bestDay.val>0?bestDay.day:'—')+')</div></div>'+
+    '</div></div>';
+
+  var body=
+    '<div class="pr-header">'+
+      '<div><div class="pr-brand">SpaceTaxi</div><div class="pr-brand-sub">Rapport chauffeur — Fribourg</div></div>'+
+      '<div class="pr-doc-meta"><div class="pr-doc-type">Rapport mensuel</div><div class="pr-doc-period">'+MONTH_FR[mon]+' '+year+'</div></div>'+
+    '</div>'+
+    kpisHTML+
+    '<div class="pr-section">Revenus par jour — '+MONTH_FR[mon]+' '+year+'</div>'+
+    chartHTML+
+    '<div class="pr-section" style="margin-top:18px">Détail journalier</div>'+
+    tableHTML+
+    '<div class="pr-footer"><span>SpaceTaxi Fribourg</span><span>Généré le '+now.toLocaleDateString('fr-CH')+'</span></div>';
+
+  printDoc('SpaceTaxi — '+MONTH_FR[mon]+' '+year, body);
+}
+
+/* ---- ANNUAL PDF ---- */
+function exportAnnualPDF(){
+  var mk=getMonthKey(currentMonthOffset);
+  var year=parseInt(mk.slice(0,4));
+  var monthlyData=[],grandTotal=0,grandCount=0;
+  for(var m=0;m<12;m++){
+    var md=getMonthData(year,m);
+    monthlyData.push({mon:m,total:md.total,count:md.count,avg:md.avg});
+    grandTotal+=md.total;grandCount+=md.count;
+  }
+  var maxV=Math.max.apply(null,monthlyData.map(function(d){return d.total;}))||1;
+  var bestMon=monthlyData.reduce(function(a,b){return b.total>a.total?b:a;},monthlyData[0]);
+
+  var chartHTML='<div class="pr-chart">';
+  monthlyData.forEach(function(d){
+    var pct=maxV>0?(d.total/maxV*100):0;
+    chartHTML+='<div class="pr-bar-wrap">'+
+      '<div class="pr-bar-val">'+(d.total>0?d.total.toFixed(0):'')+'</div>'+
+      '<div class="pr-bar-bg"><div class="pr-bar-fill'+(d.total===0?' empty':'')+'" style="height:'+pct+'%"></div></div>'+
+      '<div class="pr-bar-label">'+MONTH_SHORT[d.mon]+'</div>'+
+      '</div>';
+  });
+  chartHTML+='</div>';
+
+  var tableHTML='<table><thead><tr><th>Mois</th><th>Courses</th><th>Moy./course</th><th>Total CHF</th></tr></thead><tbody>';
+  monthlyData.forEach(function(d){
+    if(d.count===0){
+      tableHTML+='<tr><td>'+MONTH_FR[d.mon]+'</td><td class="zero">—</td><td class="zero">—</td><td class="zero">—</td></tr>';
+    } else {
+      tableHTML+='<tr><td><b>'+MONTH_FR[d.mon]+'</b></td><td>'+d.count+'</td><td>'+d.avg.toFixed(0)+' CHF</td><td>'+d.total.toFixed(2)+' CHF</td></tr>';
+    }
+  });
+  tableHTML+='<tr class="subtotal"><td>TOTAL '+year+'</td><td>'+grandCount+'</td><td>'+(grandCount>0?(grandTotal/grandCount).toFixed(0)+' CHF':'—')+'</td><td>'+grandTotal.toFixed(2)+' CHF</td></tr></tbody></table>';
+
+  var now=new Date();
+  var kpisHTML='<div class="pr-kpis"><div class="pr-kpis-row" style="grid-template-columns:repeat(4,1fr)">'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+grandTotal.toFixed(0)+' CHF</div><div class="pr-kpi-label">Total annuel</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+grandCount+'</div><div class="pr-kpi-label">Courses totales</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+(grandTotal/12).toFixed(0)+' CHF</div><div class="pr-kpi-label">Moy. mensuelle</div></div>'+
+    '<div class="pr-kpi"><div class="pr-kpi-val">'+MONTH_SHORT[bestMon.mon]+' — '+bestMon.total.toFixed(0)+' CHF</div><div class="pr-kpi-label">Meilleur mois</div></div>'+
+    '</div></div>';
+
+  var body=
+    '<div class="pr-header">'+
+      '<div><div class="pr-brand">SpaceTaxi</div><div class="pr-brand-sub">Rapport chauffeur — Fribourg</div></div>'+
+      '<div class="pr-doc-meta"><div class="pr-doc-type">Rapport annuel</div><div class="pr-doc-period">Année '+year+'</div></div>'+
+    '</div>'+
+    kpisHTML+
+    '<div class="pr-section">Revenus par mois — '+year+'</div>'+
+    chartHTML+
+    '<div class="pr-section" style="margin-top:18px">Détail mensuel</div>'+
+    tableHTML+
+    '<div class="pr-footer"><span>SpaceTaxi Fribourg</span><span>Généré le '+now.toLocaleDateString('fr-CH')+'</span></div>';
+
+  printDoc('SpaceTaxi — Annuel '+year, body);
+}
+
+function tabs(){
+  var data=get(),today=dk(new Date()),keys=[];
+  var start=new Date('2026-03-15');
+  var end=new Date();end.setDate(end.getDate()+7);
+  for(var d=new Date(start);d<=end;d.setDate(d.getDate()+1))keys.push(dk(new Date(d)));
+  Object.keys(data).forEach(function(k){if(keys.indexOf(k)===-1)keys.push(k);});
+  keys.sort();
+  var h='';
+  keys.forEach(function(k){
+    var l=k===today?"Aujourd'hui":fmtShort(k);
+    var n=data[k]?data[k].length:0;
+    var cls='day-tab'+(k===day?' active':'')+(n>0&&k!==day?' has-data':'');
+    h+='<div class="'+cls+'" onclick="selDay(\''+k+'\')">'+l+(n?' ('+n+')':'')+'</div>';
+  });
+  document.getElementById('daysTabs').innerHTML=h;
+  setTimeout(function(){var a=document.querySelector('.day-tab.active');if(a)a.scrollIntoView({inline:'center',behavior:'smooth'});},100);
+}
+
+function selDay(k){if(k===day)return;day=k;addOpen=false;document.getElementById('fab').textContent='+';tabs();render();}
+
+function render(){
+  var data=get(),courses=data[day]||[];
+  var tot=0;
+  courses.forEach(function(c){tot+=parseFloat(c.m)||0;});
+  var h='<div class="day-summary">';
+  h+='<div class="summary-card"><div class="summary-num">'+courses.length+'</div><div class="summary-label">Courses</div></div>';
+  h+='<div class="summary-card"><div class="summary-num">'+tot.toFixed(0)+' <span style="font-size:1rem;opacity:.5">CHF</span></div><div class="summary-label">Total</div></div>';
+  h+='</div>';
+  if(addOpen){
+    h+='<div class="add-card"><h4>Nouvelle course</h4>';
+    h+='<input class="add-input" id="im" type="number" placeholder="Montant CHF" inputmode="decimal">';
+    h+='<button class="add-btn" onclick="addC()">Ajouter</button></div>';
+  }
+  if(!courses.length&&!addOpen){
+    h+='<div class="empty"><div class="empty-icon"></div><div class="empty-text">Aucune course ce jour</div><div class="empty-sub">Appuyez sur + pour ajouter</div></div>';
+  }
+  courses.forEach(function(c,i){
+    h+='<div class="course-card" id="cc'+i+'" style="animation:fadeUp .25s ease">';
+    h+='<div class="swipe-bg"><span>Supprimer</span></div>';
+    h+='<div class="course-inner">';
+    h+='<div><div class="course-num">Course '+(i+1)+'</div><div class="course-amount">'+parseFloat(c.m).toFixed(0)+' CHF</div></div>';
+    h+='</div></div>';
+  });
+  document.getElementById('content').innerHTML=h;
+  initSwipe();
+  if(addOpen)setTimeout(function(){var el=document.getElementById('im');if(el)el.focus();},100);
+}
+
+function toggleAdd(){addOpen=!addOpen;document.getElementById('fab').textContent=addOpen?'✕':'+';render();}
+
+function addC(){
+  var m=document.getElementById('im').value;
+  if(!m){return;}
+  var data=get();if(!data[day])data[day]=[];
+  data[day].push({m:m});save(data);
+  addOpen=false;document.getElementById('fab').textContent='+';
+  tabs();render();
+}
+
+function initSwipe(){
+  document.querySelectorAll('.course-card').forEach(function(card){
+    var startX=0,curX=0,idx=parseInt(card.id.replace('cc',''));
+    var inner=card.querySelector('.course-inner');
+    var bg=card.querySelector('.swipe-bg');
+    card.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;},{passive:true});
+    card.addEventListener('touchmove',function(e){
+      curX=e.touches[0].clientX-startX;
+      if(curX<0){inner.style.transform='translateX('+curX+'px)';bg.style.opacity=Math.min(1,Math.abs(curX)/80);}
+    },{passive:true});
+    card.addEventListener('touchend',function(){
+      if(curX<-80){card.style.opacity='0';card.style.transform='translateX(-100%)';setTimeout(function(){del(idx);},250);}
+      else{inner.style.transform='';bg.style.opacity=0;}
+      curX=0;
+    });
+  });
+}
+
+function del(i){
+  var data=get();
+  if(!data[day])return;
+  data[day].splice(i,1);
+  if(data[day].length===0)delete data[day];
+  save(data);tabs();render();
+}
+
+function renderStats(){
+  var data=get(),now=new Date();
+  var thisMonth=now.toISOString().slice(0,7);
+  var weekStart=new Date(now),dow=weekStart.getDay();if(dow===0)dow=7;
+  weekStart.setDate(weekStart.getDate()-(dow-1));
+  var weekTotal=0,weekCourses=0,monthTotal=0,monthCourses=0;
+  var chartDays=[];
+  for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);var k=dk(d);var t=0;if(data[k])data[k].forEach(function(c){t+=parseFloat(c.m)||0;});chartDays.push({label:fmtShort(k),val:t});}
+  Object.keys(data).forEach(function(k){
+    var kDate=new Date(k+'T12:00:00');
+    if(kDate>=weekStart&&kDate<=now)data[k].forEach(function(c){weekTotal+=parseFloat(c.m)||0;weekCourses++;});
+    if(k.slice(0,7)===thisMonth)data[k].forEach(function(c){monthTotal+=parseFloat(c.m)||0;monthCourses++;});
+  });
+  var maxVal=Math.max.apply(null,chartDays.map(function(d){return d.val;}))||1;
+  var h='';
+  h+='<div class="stats-grid">';
+  h+='<div class="stat-big"><div class="stat-big-num">'+weekTotal.toFixed(0)+'<span style="font-size:1rem;opacity:.4"> CHF</span></div><div class="stat-big-label">Semaine</div></div>';
+  h+='<div class="stat-big"><div class="stat-big-num">'+weekCourses+'</div><div class="stat-big-label">Courses sem.</div></div>';
+  h+='<div class="stat-big"><div class="stat-big-num">'+monthTotal.toFixed(0)+'<span style="font-size:1rem;opacity:.4"> CHF</span></div><div class="stat-big-label">Ce mois</div></div>';
+  h+='<div class="stat-big"><div class="stat-big-num">'+monthCourses+'</div><div class="stat-big-label">Courses mois</div></div>';
+  h+='</div>';
+  h+='<div class="chart-card"><div class="chart-title">7 derniers jours</div><div class="chart-wrap">';
+  chartDays.forEach(function(d){
+    var pct=d.val/maxVal*100;
+    h+='<div class="chart-bar-wrap">';
+    h+='<div class="chart-bar-val">'+(d.val>0?d.val.toFixed(0):'')+'</div>';
+    h+='<div class="chart-bar-bg"><div class="chart-bar-fill" style="height:'+pct+'%"></div></div>';
+    h+='<div class="chart-bar-label">'+d.label+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  document.getElementById('statsContent').innerHTML=h;
+}
+
+function exportWhatsApp(){
+  var data=get(),now=new Date();
+  var thisMonth=now.toISOString().slice(0,7);
+  var mois=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var nomMois=mois[now.getMonth()]+' '+now.getFullYear();
+  var monthTotal=0,monthCourses=0,details='';
+  var jours=Object.keys(data).filter(function(k){return k.slice(0,7)===thisMonth;}).sort();
+  jours.forEach(function(k){
+    var d=new Date(k+'T12:00:00');
+    var label=d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');
+    var dayTotal=0,dayCount=0;
+    data[k].forEach(function(c){dayTotal+=parseFloat(c.m)||0;dayCount++;monthTotal+=parseFloat(c.m)||0;monthCourses++;});
+    details+='\uD83D\uDCC5 '+label+' — '+dayCount+' course'+(dayCount>1?'s':'')+' — '+dayTotal.toFixed(0)+' CHF\n';
+  });
+  var msg='\uD83D\uDE80 *Résumé SpaceTaxi — '+nomMois+'*\n\n'+details+'\n\uD83D\uDCB0 *Total : '+monthTotal.toFixed(0)+' CHF*\n\uD83D\uDE97 *Courses : '+monthCourses+'*';
+  window.open('https://wa.me/+41798012242?text='+encodeURIComponent(msg),'_blank');
+}
+</script>
+</body>
+</html>
